@@ -1,0 +1,32 @@
+server {
+        server_name {server_name};
+
+        root {document_root};
+        index index.html index.php;
+
+        # Logs
+        access_log /var/log/nginx/{server_name}_access.log;
+        error_log /var/log/nginx/{server_name}_error.log;
+
+        
+        location / {
+                # Check if a file or directory index file exists, else route it to index.php.
+                try_files $uri $uri/ /index.php;
+        }
+
+        location ~* \.php$ {             
+            fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+            include fastcgi.conf;
+            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        }
+	
+	# Deny for accessing .htaccess files for Nginx
+	location ~ /\.ht {
+        deny all;
+    }
+	
+	# Deny for accessing codes
+    location ~ ^/(application|system|tests)/ {
+        return 403;
+    }
+}
