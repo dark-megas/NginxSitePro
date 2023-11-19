@@ -1,25 +1,20 @@
 # Gestor de Sitios para Nginx
 
-Este proyecto es un script en Python diseñado para facilitar la gestión de sitios en un servidor Nginx. Permite habilitar, deshabilitar, listar, crear y editar sitios de forma interactiva.
+Este proyecto es un script en Python diseñado para facilitar la gestión de sitios en un servidor Nginx. Permite habilitar, deshabilitar, listar, crear y editar sitios de forma interactiva y también mediante argumentos de línea de comandos.
 
 ## Características
 
-- Habilitar y deshabilitar sitios en Nginx.
+- Habilitar y deshabilitar sitios en Nginx de forma interactiva o mediante argumentos de línea de comandos.
 - Listar todos los sitios habilitados.
-- Crear nuevos sitios con configuraciones predefinidas para diferentes tipos de proyectos.
-- Editar la configuración de sitios existentes.
-- Interfaz de usuario interactiva para una fácil gestión.
+- Crear nuevos sitios con configuraciones predefinidas para diferentes tipos de proyectos, tanto de forma interactiva como por comandos.
+- Editar la configuración de sitios existentes de manera interactiva o a través de argumentos de línea de comandos.
+- Interfaz de usuario interactiva para una fácil gestión y opción de manejo mediante comandos para automatización.
 
 ## Requisitos
 
 - Python 3
 - Nginx
-- `inquirer` Python package
-- `subprocess` Python package
-- `os` Python package
-- `argparse` Python package
-- `time` Python package
-- `re` Python package
+- Paquetes de Python: inquirer, subprocess, os, argparse, time, re
 
 ## Instalación y Uso
 
@@ -33,7 +28,21 @@ Este proyecto es un script en Python diseñado para facilitar la gestión de sit
     ```bash
     python3 nsp.py
 ## Uso
-El script se puede ejecutar en modo interactivo simplemente ejecutándolo sin argumentos
+El script se puede ejecutar en modo interactivo simplemente ejecutándolo sin argumentos.
+
+## Uso mediante Argumentos de Línea de Comandos
+- --enable [nombre_sitio]: Habilita un sitio específico.
+- --disable [nombre_sitio]: Deshabilita un sitio específico.
+- --list: Lista todos los sitios disponibles y su estado.
+- --create [nombre_sitio] [versión_php] [tipo_proyecto]: Crea un nuevo sitio con los parámetros especificados.
+- --modify [nombre_sitio] [nuevo_nombre_servidor] [nuevo_root] [nueva_versión_php]: Modifica la configuración de un sitio existente.
+
+## Ejemplos de Comandos
+    python3 nsp.py --enable ejemplo.com
+    python3 nsp.py --disable ejemplo.com
+    python3 nsp.py --list
+    python3 nsp.py --create ejemplo.com 7.4 Laravel
+    python3 nsp.py --modify ejemplo.com nuevo-ejemplo.com /var/www/nuevo /usr/bin/php7.4
 
 ## Comandos Disponibles
 

@@ -72,7 +72,6 @@ def list_sites():
     print("Sitios habilitados:")
     for site in sites_enabled:
         print(site)
-    #back to menu
     show_menu()
 
 def modify_site():
@@ -239,27 +238,156 @@ def get_installed_php_versions():
 
     return list(php_versions)
         
-def main():
+def enable_site_by_arg(site_name):
+    """ Habilita un sitio de Nginx por nombre. """
+    site_path = f"/etc/nginx/sites-available/{site_name}"
+    site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
+
+    if not os.path.exists(site_path):
+        print(f"El sitio {site_name} no existe en 'sites-available'.")
+        return
+
+    if os.path.exists(site_link_path):
+        print(f"El sitio {site_name} ya está habilitado.")
+        return
+
+    os.symlink(site_path, site_link_path)
+    print(f"Sitio {site_name} habilitado.")
+    restart_nginx()
     
-    try:    
-        parser = argparse.ArgumentParser(description="Gestor de sitios para Nginx")
-        parser.add_argument("--enable", help="Habilitar un sitio")
-        parser.add_argument("--disable", help="Deshabilitar un sitio")
-        parser.add_argument("--list", action="store_true", help="Listar todos los sitios habilitados")
+def disable_site_by_arg(site_name):
+    """ Deshabilita un sitio de Nginx por nombre. """
+    site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
 
-        args = parser.parse_args()
+    if not os.path.exists(site_link_path):
+        print(f"El sitio {site_name} no está habilitado o no existe.")
+        return
 
-        if args.enable:
-            enable_site(args.enable)
-        elif args.disable:
-            disable_site(args.disable)
-        elif args.list:
-            list_sites()
+    os.remove(site_link_path)
+    print(f"Sitio {site_name} deshabilitado.")
+    restart_nginx()
+        
+def create_site_by_arg(site_name, php_version, project_type):
+    """ Crea un nuevo sitio en Nginx con los parámetros especificados. """
+    base_path = '/var/www'
+    if os.path.exists('/var/www/html'):
+        base_path = '/var/www/html'
+
+    site_path = os.path.join(base_path, site_name)
+
+    # Crear directorio si no existe
+    if not os.path.exists(site_path):
+        os.makedirs(site_path)
+        print(f"Directorio creado en {site_path}")
+    else:
+        print(f"El directorio ya existe en {site_path}. Continuando sin crear directorio...")
+
+    # Determinar la plantilla de configuración según el tipo de proyecto
+    vhost_template = None
+    if project_type == "Laravel":
+        subprocess.run(["composer", "create-project", "laravel/laravel", site_path])
+        vhost_template = "templates/laravel.test"
+    elif project_type == "CodeIgniter":
+        subprocess.run(["git", "clone", "https://github.com/bcit-ci/CodeIgniter.git", "-b", "3.1-stable", site_path])
+        vhost_template = "templates/codeigniter.test"
+    else:  # Proyecto PHP en blanco
+        vhost_template = "templates/php_blank.test"  # Asumiendo que existe una plantilla para PHP en blanco
+
+    # Crear y habilitar el sitio
+    if vhost_template and os.path.exists(vhost_template):
+        with open(vhost_template, 'r') as vhost_file:
+            vhost_content = vhost_file.read()
+
+        vhost_content = vhost_content.replace("{server_name}", site_name)
+        vhost_content = vhost_content.replace("{document_root}", site_path)
+        vhost_content = vhost_content.replace("{php_version}", php_version)
+
+        vhost_path = f"/etc/nginx/sites-available/{site_name}"
+        with open(vhost_path, 'w') as vhost_file:
+            vhost_file.write(vhost_content)
+
+        symlink_path = f"/etc/nginx/sites-enabled/{site_name}"
+        os.symlink(vhost_path, symlink_path)
+
+        subprocess.run(["sudo", "systemctl", "restart", "nginx"])
+        print(f"Sitio {site_name} creado y habilitado.")
+    else:
+        print(f"No se encontró la plantilla {vhost_template}. No se puede continuar.")
+        
+def modify_site_by_arg(site_name, new_server_name=None, new_root=None, new_php_version=None):
+    """ Modifica la configuración de un sitio existente en Nginx. """
+    vhost_path = f"/etc/nginx/sites-available/{site_name}"
+
+    # Verificar si el archivo de configuración existe
+    if not os.path.exists(vhost_path):
+        print(f"No se encontró el sitio {site_name}.")
+        return
+
+    # Leer la configuración actual
+    with open(vhost_path, 'r') as file:
+        current_config = file.read()
+
+    # Realizar cambios si se proporcionan argumentos
+    if new_server_name:
+        current_config = current_config.replace(f"server_name {site_name};", f"server_name {new_server_name};")
+    if new_root:
+        current_config = re.sub(r'root\s+.+;', f'root {new_root};', current_config)
+    if new_php_version:
+        current_config = re.sub(r'fastcgi_pass unix:/var/run/php/.+?-fpm.sock;', f'fastcgi_pass unix:/var/run/php/php{new_php_version}-fpm.sock;', current_config)
+
+    # Guardar los cambios
+    with open(vhost_path, 'w') as file:
+        file.write(current_config)
+
+    # Reiniciar Nginx
+    restart_nginx()
+    print(f"Configuración de {site_name} actualizada.")
+
+def list_sites_by_arg(action):
+    #Listar todos los sitios y crear una tabla con el nombre y el estado
+    sites_enabled = os.listdir("/etc/nginx/sites-enabled")
+    sites_available = os.listdir("/etc/nginx/sites-available")
+    
+    sites = []
+    for site in sites_available:
+        if site in sites_enabled:
+            sites.append([site, "Habilitado"])
         else:
-            show_menu()
-    except KeyboardInterrupt:
-        print("\nSaliendo...")
-        exit()
-           
+            sites.append([site, "Deshabilitado"])
+            
+    print("Sitios:")
+    print("Nombre\t\tEstado")
+    for site in sites:
+        print(f"{site[0]}\t\t{site[1]}")
+    
+        
+def main():
+    parser = argparse.ArgumentParser(description="Gestor de sitios para Nginx")
+    parser.add_argument("--enable", help="Habilitar un sitio")
+    parser.add_argument("--disable", help="Deshabilitar un sitio")
+    parser.add_argument("--list", action="store_true", help="Listar todos los sitios")
+    parser.add_argument("--create", nargs=3, help="Crear un nuevo sitio. Requiere tres argumentos: SITE_NAME, PHP_VERSION, PROJECT_TYPE")
+    parser.add_argument("--modify", nargs=4, help="Modificar un sitio existente. Requiere cuatro argumentos: SITE_NAME, NEW_SERVER_NAME, NEW_ROOT, NEW_PHP_VERSION")
+
+    args = parser.parse_args()
+
+    if args.enable:
+        
+        enable_site_by_arg(args.enable)
+    elif args.disable:
+        disable_site_by_arg(args.disable)
+    elif args.list:
+        list_sites_by_arg(args.list)
+    elif args.create:
+        site_name, php_version, project_type = args.create
+        create_site_by_arg(site_name, php_version, project_type)
+    elif args.modify:
+        site_name, new_server_name, new_root, new_php_version = args.modify
+        modify_site_by_arg(site_name, new_server_name, new_root, new_php_version)
+    else:
+        show_menu()
+
+# Ejecutar el programa
 if __name__ == "__main__":
     main()
+    
