@@ -7,8 +7,11 @@ import re
 
 def restart_nginx():
     """ Reinicia el servicio de Nginx. """
-    subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
-    print("Nginx ha sido reiniciado.")
+    try:
+        subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
+        print("Nginx ha sido reiniciado.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error al reiniciar Nginx: {e}")
         
 def get_sites(directory):
     """ Obtiene una lista de sitios desde un directorio específico. """
@@ -179,6 +182,10 @@ def create_new_site():
         base_path = '/var/www/html'
 
     site_name = input("Introduce el nombre del sitio (ejemplo.com): ")
+    if not re.match(r'^[a-zA-Z0-9.-]+$', site_name):
+        print("Nombre del sitio inválido.")
+        return
+    
     site_path = os.path.join(base_path, site_name)
 
     if not os.path.exists(site_path):
@@ -240,35 +247,53 @@ def get_installed_php_versions():
         
 def enable_site_by_arg(site_name):
     """ Habilita un sitio de Nginx por nombre. """
-    site_path = f"/etc/nginx/sites-available/{site_name}"
-    site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
+    try:
+        site_path = f"/etc/nginx/sites-available/{site_name}"
+        site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
 
-    if not os.path.exists(site_path):
-        print(f"El sitio {site_name} no existe en 'sites-available'.")
-        return
+        if not os.path.exists(site_path):
+            print(f"El sitio {site_name} no existe en 'sites-available'.")
+            return
 
-    if os.path.exists(site_link_path):
-        print(f"El sitio {site_name} ya está habilitado.")
-        return
+        if os.path.exists(site_link_path):
+            print(f"El sitio {site_name} ya está habilitado.")
+            return
 
-    os.symlink(site_path, site_link_path)
-    print(f"Sitio {site_name} habilitado.")
-    restart_nginx()
+        os.symlink(site_path, site_link_path)
+        print(f"Sitio {site_name} habilitado.")
+        restart_nginx()
+    except OSError as e:
+        print(f"Error al habilitar el sitio: {e}")
+
     
 def disable_site_by_arg(site_name):
     """ Deshabilita un sitio de Nginx por nombre. """
-    site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
+    try:
+        site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
 
-    if not os.path.exists(site_link_path):
-        print(f"El sitio {site_name} no está habilitado o no existe.")
-        return
+        if not os.path.exists(site_link_path):
+            print(f"El sitio {site_name} no está habilitado o no existe.")
+            return
 
-    os.remove(site_link_path)
-    print(f"Sitio {site_name} deshabilitado.")
-    restart_nginx()
+        os.remove(site_link_path)
+        print(f"Sitio {site_name} deshabilitado.")
+        restart_nginx()
+    except OSError as e:
+        print(f"Error al deshabilitar el sitio: {e}")
         
 def create_site_by_arg(site_name, php_version, project_type):
     """ Crea un nuevo sitio en Nginx con los parámetros especificados. """
+    # Validaciones
+    if not re.match(r'^[a-zA-Z0-9.-]+$', site_name):
+        print("Nombre del sitio inválido.")
+        return
+    if not re.match(r'^\d+\.\d+$', php_version):
+        print("Versión de PHP inválida.")
+        return
+    if project_type not in ["PHP en blanco", "Laravel", "CodeIgniter"]:
+        print("Tipo de proyecto inválido.")
+        return
+    
     base_path = '/var/www'
     if os.path.exists('/var/www/html'):
         base_path = '/var/www/html'
@@ -316,6 +341,17 @@ def create_site_by_arg(site_name, php_version, project_type):
         
 def modify_site_by_arg(site_name, new_server_name=None, new_root=None, new_php_version=None):
     """ Modifica la configuración de un sitio existente en Nginx. """
+     # Validaciones
+    if new_server_name and not re.match(r'^[a-zA-Z0-9.-]+$', new_server_name):
+        print("Nuevo nombre de servidor inválido.")
+        return
+    if new_root and not os.path.isdir(new_root):
+        print("La ruta del nuevo root no existe.")
+        return
+    if new_php_version and not re.match(r'^\d+\.\d+$', new_php_version):
+        print("Versión de PHP inválida.")
+        return
+    
     vhost_path = f"/etc/nginx/sites-available/{site_name}"
 
     # Verificar si el archivo de configuración existe
