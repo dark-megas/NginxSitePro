@@ -264,10 +264,13 @@ def enable_site_by_arg(site_name):
         restart_nginx()
     except OSError as e:
         print(f"Error al habilitar el sitio: {e}")
-
     
 def disable_site_by_arg(site_name):
     """ Deshabilita un sitio de Nginx por nombre. """
+    # Validaciones
+    if not re.match(r'^[a-zA-Z0-9.-]+$', site_name):
+        print("Nombre del sitio inválido.")
+        return
     try:
         site_link_path = f"/etc/nginx/sites-enabled/{site_name}"
 
