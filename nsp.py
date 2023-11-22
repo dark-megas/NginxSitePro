@@ -197,15 +197,43 @@ def create_new_site():
 
     php_versions = get_installed_php_versions()
     php_version = inquirer.list_input("Elige la versión de PHP:", choices=php_versions)
-
     project_type = inquirer.list_input("Tipo de proyecto:", choices=["PHP en blanco", "Laravel", "CodeIgniter"])
+    
+    # Versiones del framework laravel del 8 al 10
+    laravel_versions = ["10.0", "9.0", "8.0"]
+    laravel_version = None
+    
+    if project_type == "Laravel":        
 
-    if project_type == "Laravel":
-        subprocess.run(["composer", "create-project", "laravel/laravel", site_path])
+        #Consultar si desea instalar un proyecto existente o crear uno nuevo
+        laravel_project_type = inquirer.list_input("¿Desea instalar un proyecto existente o crear uno nuevo?:", choices=["Instalar proyecto existente", "Crear proyecto nuevo"])
+        
+        #Si desea instalar un proyecto existente
+        if laravel_project_type == "Instalar proyecto existente":
+            #Pedir url del repositorio
+            laravel_repo_url = input("Introduce la url del repositorio: ")
+            #Clonar repositorio
+            subprocess.run(["git", "clone", laravel_repo_url, site_path])
+        else:        
+            laravel_version = inquirer.list_input("Elige la versión de Laravel:", choices=laravel_versions)
+            subprocess.run(["composer", "create-project", f"laravel/laravel:^{laravel_version}", site_path])
         vhost_template = "templates/laravel.test"
+        
     elif project_type == "CodeIgniter":
-        subprocess.run(["git", "clone", "https://github.com/bcit-ci/CodeIgniter.git", "-b", "3.1-stable", site_path])
+        
+        #Consultar si desea instalar un proyecto existente o crear uno nuevo
+        codeigniter_project_type = inquirer.list_input("¿Desea instalar un proyecto existente o crear uno nuevo?:", choices=["Instalar proyecto existente", "Crear proyecto nuevo"])
+        
+        #Si desea instalar un proyecto existente
+        if codeigniter_project_type == "Instalar proyecto existente":
+            #Pedir url del repositorio
+            codeigniter_repo_url = input("Introduce la url del repositorio: ")
+            #Clonar repositorio
+            subprocess.run(["git", "clone", codeigniter_repo_url, "-b", "3.1-stable", site_path])
+        else:
+            subprocess.run(["git", "clone", "https://github.com/bcit-ci/CodeIgniter.git", "-b", "3.1-stable", site_path])
         vhost_template = "templates/codeigniter.test"
+        
     else:
         vhost_template = None  # O una plantilla por defecto para PHP en blanco
 
@@ -228,6 +256,7 @@ def create_new_site():
         print(f"Sitio {site_name} creado y habilitado.")
     else:
         print(f"No se encontró la plantilla {vhost_template}. No se puede continuar.")
+    restart_nginx()
     show_menu()
     
 def get_installed_php_versions():
@@ -341,6 +370,7 @@ def create_site_by_arg(site_name, php_version, project_type):
         print(f"Sitio {site_name} creado y habilitado.")
     else:
         print(f"No se encontró la plantilla {vhost_template}. No se puede continuar.")
+    restart_nginx()        
         
 def modify_site_by_arg(site_name, new_server_name=None, new_root=None, new_php_version=None):
     """ Modifica la configuración de un sitio existente en Nginx. """
@@ -398,8 +428,7 @@ def list_sites_by_arg(action):
     print("Nombre\t\tEstado")
     for site in sites:
         print(f"{site[0]}\t\t{site[1]}")
-    
-        
+
 def main():
     parser = argparse.ArgumentParser(description="Gestor de sitios para Nginx")
     parser.add_argument("--enable", help="Habilitar un sitio")
