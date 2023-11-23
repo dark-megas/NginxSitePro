@@ -4,8 +4,9 @@ import os
 import argparse
 
 class Menu:
-    def __init__(self, nginx_manager):
+    def __init__(self, nginx_manager, mariaDbInstaller):
         self.nginx_manager = nginx_manager
+        self.mariaDbInstaller = mariaDbInstaller
 
     def show_menu(self):
         try:
@@ -19,7 +20,8 @@ class Menu:
                         "Listar todos los sitios",
                         "Crear un nuevo sitio",
                         "Mostrar opciones del sitio",
-                        "Editar sitio",
+                        "Instalar MariaDB",
+                        "Cambiar contraseña de root de MariaDB",
                         "Salir",
                     ],
                 ),
@@ -41,6 +43,10 @@ class Menu:
                 self.nginx_manager.modify_site()
             elif answers["action"] == "Mostrar opciones del sitio":
                 self.nginx_manager.show_varsSite()
+            elif answers["action"] == "Instalar MariaDB":
+                self.mariaDbInstaller.install_mariadb()
+            elif answers["action"] == "Cambiar contraseña de root de MariaDB":
+                self.mariaDbInstaller.change_root_password()
             elif answers["action"] == "Salir":
                 # clear console
                 os.system("clear")

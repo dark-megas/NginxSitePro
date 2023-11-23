@@ -1,5 +1,6 @@
 import Menu
 import NginxManager
+import MariaDBInstaller
 import sys
 import argparse
 
@@ -12,13 +13,17 @@ def main():
         parser.add_argument("--list", action="store_true", help="Listar todos los sitios")
         parser.add_argument("--create", nargs=3, help="Crear un nuevo sitio. Requiere tres argumentos: SITE_NAME, PHP_VERSION, PROJECT_TYPE")
         args = parser.parse_args()
-        
+
+        mariaDbInstaller = MariaDBInstaller.MariaDBInstaller()
         #Create a new nginx manager
         nginx = NginxManager.NginxManager()
         #Create a new menu
-        menu = Menu.Menu(nginx)
+        menu = Menu.Menu(nginx, mariaDbInstaller)
         #Inject the menu into the nginx manager
         nginx.set_menu(menu)
+        
+        #Inject the menu into the MariaDB installer
+        mariaDbInstaller.set_menu(menu)
         
         if args.enable:
             nginx.enable_site_by_arg(args.enable)
