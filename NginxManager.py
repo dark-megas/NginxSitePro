@@ -397,4 +397,17 @@ class NginxManager:
 
     def set_menu(self, menu):
         self.menu = menu
-        
+    
+    
+    def InstallNginx(self):
+        #clear console
+        os.system("clear")
+        try:
+            #Install Nginx 
+            subprocess.run(["sudo", "apt", "update"], check=True)
+            subprocess.run(["sudo", "apt", "install", "nginx"], check=True)
+            print("Nginx instalado correctamente.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error al instalar Nginx: {e}")
+        #show menu
+        self.menu.show_menu()

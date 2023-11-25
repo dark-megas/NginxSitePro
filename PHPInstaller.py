@@ -7,12 +7,12 @@ class PHPInstaller:
         pass
 
     def install_php(self):
-        """ Instala una versión específica de PHP. """
+        """ Instala una versión específica de PHP FPM. """
         try:
             version = input("Ingresa la versión de PHP que deseas instalar: ")
             print(f"Iniciando la instalación de PHP {version}...")
             subprocess.run(['sudo', 'apt', 'update'], check=True)
-            subprocess.run(['sudo', 'apt', 'install', f'php{version}', '-y'], check=True)
+            subprocess.run(['sudo', 'apt', 'install', f'php{version}-fpm'], check=True)
             print(f"PHP {version} instalado con éxito.")
         except subprocess.CalledProcessError as e:
             print(f"Error al instalar PHP {version}: {e}")

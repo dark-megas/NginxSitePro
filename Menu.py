@@ -20,6 +20,7 @@ class Menu:
                         "Listar todos los sitios",
                         "Crear un nuevo sitio",
                         "Mostrar opciones del sitio",
+                        'Instalar Nginx',
                         "Instalar MariaDB",
                         "Cambiar contraseña de root de MariaDB",
                         "Salir",
@@ -43,6 +44,8 @@ class Menu:
                 self.nginx_manager.modify_site()
             elif answers["action"] == "Mostrar opciones del sitio":
                 self.nginx_manager.show_varsSite()
+            elif answers["action"] == "Instalar Nginx":
+                self.nginx_manager.InstallNginx()
             elif answers["action"] == "Instalar MariaDB":
                 self.mariaDbInstaller.install_mariadb()
             elif answers["action"] == "Cambiar contraseña de root de MariaDB":
