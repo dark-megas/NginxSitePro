@@ -150,7 +150,16 @@ def show_menu():
         questions = [
             inquirer.List('action',
                           message="¿Qué acción te gustaría realizar?",
-                          choices=['Habilitar un sitio', 'Deshabilitar un sitio', 'Listar todos los sitios', 'Crear un nuevo sitio','Mostrar opciones del sitio' ,'Editar sitio', 'Salir'],
+                          choices=[
+                              'Habilitar un sitio',
+                              'Deshabilitar un sitio',
+                              'Listar todos los sitios',
+                              'Crear un nuevo sitio',
+                              'Mostrar opciones del sitio',
+                              'Editar sitio',
+                              'Crear Vhost',
+                              'Salir'
+                            ],
                           ),
         ]
         answers = inquirer.prompt(questions)
@@ -168,6 +177,8 @@ def show_menu():
             create_new_site()
         elif answers['action'] == 'Editar sitio':
             modify_site()
+        elif answers['action'] == 'Crear Vhost':
+            makeVhost()
         elif answers['action'] == 'Mostrar opciones del sitio':
             show_varsSite()
         elif answers['action'] == 'Salir':
@@ -398,7 +409,59 @@ def list_sites_by_arg(action):
     print("Nombre\t\tEstado")
     for site in sites:
         print(f"{site[0]}\t\t{site[1]}")
+
+#Metodo que solo va a crear el archivo de configuracion NGINX
+def makeVhost():
     
+    ##Obtener nombre del sitio
+    site_name = input("Introduce el nombre del sitio (ejemplo.com): ")
+    if not re.match(r'^[a-zA-Z0-9.-]+$', site_name):
+        print("Nombre del sitio inválido.")
+        return
+    
+    
+    ##Obtener version de PHP
+    php_versions = get_installed_php_versions()
+    php_version = inquirer.list_input("Elige la versión de PHP:", choices=php_versions)
+    
+    ##Obtener tipo de proyecto
+    project_type = inquirer.list_input("Tipo de proyecto:", choices=["PHP en blanco", "Laravel", "CodeIgniter"])
+
+    base_path = '/var/www'
+    
+    if os.path.exists('/var/www/html'):
+        base_path = '/var/www/html'
+        
+    site_path = os.path.join(base_path, site_name)
+
+    if project_type == "Laravel":
+        vhost_template = "templates/laravel.test"
+    elif project_type == "CodeIgniter":
+        vhost_template = "templates/codeigniter.test"
+    else:
+        vhost_template = None  # O una plantilla por defecto para PHP en blanco
+
+    if vhost_template and os.path.exists(vhost_template):
+        with open(vhost_template, 'r') as vhost_file:
+            vhost_content = vhost_file.read()
+
+        vhost_content = vhost_content.replace("{server_name}", site_name)
+        vhost_content = vhost_content.replace("{document_root}", site_path)
+        vhost_content = vhost_content.replace("{php_version}", php_version)
+
+        vhost_path = f"/etc/nginx/sites-available/{site_name}"
+        with open(vhost_path, 'w') as vhost_file:
+            vhost_file.write(vhost_content)
+
+        symlink_path = f"/etc/nginx/sites-enabled/{site_name}"
+        os.symlink(vhost_path, symlink_path)
+
+        subprocess.run(["sudo", "systemctl", "restart", "nginx"])
+        print(f"Sitio {site_name} creado y habilitado.")
+    else:
+        print(f"No se encontró la plantilla {vhost_template}. No se puede continuar.")
+    show_menu()
+
         
 def main():
     parser = argparse.ArgumentParser(description="Gestor de sitios para Nginx")

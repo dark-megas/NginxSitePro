@@ -1,1 +1,3 @@
 baseEnv/*
+.vscode/*
+__pycache__/*
